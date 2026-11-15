@@ -1,0 +1,47 @@
+questions:
+  - id: q1
+    prompt: What does durability guarantee?
+    options:
+      - Queries never fail
+      - Changes of a committed transaction are persisted to non-volatile storage and survive a crash
+      - Data is encrypted on disk
+      - Uncommitted changes survive a power loss
+    answer: 1
+    explanation: "Emphasis on committed: for uncommitted work nothing is promised."
+  - id: q2
+    prompt: Why can a database lose committed data even though it "wrote" the log to disk?
+    options:
+      - The write only reached the operating system cache and not the physical disk
+      - SQL forbids saving data
+      - Disks cannot store logs
+      - Indexes were rebuilt
+    answer: 0
+    explanation: The OS may acknowledge a write once it is in its RAM cache. Only fsync forces it to the device. Databases pay for fsync on commit to keep the promise.
+  - id: q3
+    prompt: Why do engines write a write-ahead log (WAL) at commit instead of all changed data pages?
+    options:
+      - The log is small and append-only, so flushing it is cheap; the data files can be rebuilt by replaying it after a crash
+      - The log is easier for humans to read
+      - Data pages cannot be written to disk
+      - It makes queries faster
+    answer: 0
+    explanation: One logical change touches many pages (write amplification). A compact sequential log is cheap to flush, and replay reconstructs the rest.
+  - id: q4
+    prompt: With PostgreSQL `synchronous_commit = off`, what can be lost after a crash?
+    options:
+      - The whole database
+      - The most recent few transactions, but the database is not corrupted
+      - Nothing, the setting only changes the timing
+      - Only uncommitted transactions
+    answer: 1
+    explanation: Commits return before the WAL is flushed. Recovery replays the WAL up to its last flushed record, so the last moments are lost but consistency remains.
+  - id: q5
+    prompt: In Redis AOF mode with `appendfsync everysec`, how much data can you lose in a crash?
+    options: [Nothing, About one second of writes, Everything since the last snapshot, The whole dataset]
+    answer: 1
+    explanation: A background fsync runs once a second. `always` syncs every write, `no` leaves it to the OS.
+  - id: q6
+    prompt: Which PostgreSQL setting can corrupt the database after an operating-system crash?
+    options: [synchronous_commit = off, fsync = off, wal_writer_delay, max_connections]
+    answer: 1
+    explanation: fsync = off skips forced flushes entirely, so ordering guarantees are gone. synchronous_commit = off only risks recent transactions.

@@ -1,0 +1,20 @@
+questions:
+  - id: q1
+    prompt: To simulate a power cut on a database running in Docker, which command is closest?
+    options: [docker stop, docker kill, docker pause, docker restart]
+    answer: 1
+    explanation: docker kill sends SIGKILL, so the database gets no chance to shut down cleanly. docker stop first asks for a graceful shutdown.
+  - id: q2
+    prompt: "You sell 10 phones in a transaction (inventory 100 to 90, one sale row) but have not committed. What does a second terminal see?"
+    options:
+      - Inventory 90 and no sale yet
+      - Inventory 100 and no sale (isolation)
+      - Inventory 90 and the sale
+      - An error
+    answer: 1
+    explanation: Uncommitted changes are invisible to other sessions. Only COMMIT makes inventory 90 and the sale row appear together.
+  - id: q3
+    prompt: You start a transaction, deduct inventory, and kill the database before COMMIT. After restart the inventory is
+    options: ["Reduced by the deduction", "Back to its original value", "NULL", "Locked"]
+    answer: 1
+    explanation: Crash recovery replays committed work and ignores uncommitted work, which is atomicity and durability working together.

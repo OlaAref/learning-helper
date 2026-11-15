@@ -1,0 +1,45 @@
+id: t4-lost-update
+title: Reproduce a lost update
+kind: concurrency
+difficulty: medium
+sessions: [A, B]
+statement: |
+  An application adds stock with read-modify-write: it reads `qty`, adds in code, writes the result back. Both run in autocommit mode (no BEGIN).
+
+  Qty is 10. **A** wants to add 10, **B** wants to add 5. The right final value is 25.
+
+  1. **A:** `SELECT qty FROM sales WHERE pid = 1` (10).
+  2. **B:** the same SELECT (10).
+  3. **B:** `UPDATE sales SET qty = 15 WHERE pid = 1` (10 + 5).
+  4. **A:** `UPDATE sales SET qty = 20 WHERE pid = 1` (10 + 10).
+
+  B's sale is now lost.
+setup: |
+  CREATE TABLE sales (pid int PRIMARY KEY, qty int, price int);
+  INSERT INTO sales VALUES (1, 10, 5), (2, 20, 4);
+checks:
+  - type: result
+    description: A read 10
+    session: A
+    nth: "1"
+    expect: [[10]]
+  - type: result
+    description: B read 10
+    session: B
+    nth: "1"
+    expect: [[10]]
+  - type: query
+    description: The final qty is 20 instead of 25
+    sql: SELECT qty FROM sales WHERE pid = 1
+    expect: [[20]]
+solution:
+  explanation: Both transactions computed their new value from the same stale read, so the second write silently overwrote the first.
+  steps:
+    - session: A
+      sql: SELECT qty FROM sales WHERE pid = 1;
+    - session: B
+      sql: SELECT qty FROM sales WHERE pid = 1;
+    - session: B
+      sql: UPDATE sales SET qty = 15 WHERE pid = 1;
+    - session: A
+      sql: UPDATE sales SET qty = 20 WHERE pid = 1;

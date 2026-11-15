@@ -1,0 +1,47 @@
+questions:
+  - id: q1
+    prompt: "A table holds `a, a, b, b`. T1 turns every a into b, T2 turns every b into a, concurrently, both at REPEATABLE READ. What is the final table?"
+    options: ["b, b, b, b", "a, a, a, a", "b, b, a, a", "An error is raised"]
+    answer: 2
+    explanation: Each transaction updates different rows from its own snapshot, so nobody conflicts. The result matches no serial order.
+  - id: q2
+    prompt: Which final tables are possible if the two transactions run one after the other?
+    options: ["Only b, b, b, b", "Only a, a, a, a", "Either all b or all a", "b, b, a, a"]
+    answer: 2
+    explanation: T1 then T2 gives all a, T2 then T1 gives all b. Serializable means the outcome equals some serial order.
+  - id: q3
+    prompt: At SERIALIZABLE, what happens to the second transaction to commit in this scenario?
+    options:
+      - It succeeds silently
+      - It fails with a serialization error (SQLSTATE 40001)
+      - It waits for a lock forever
+      - It is converted to Repeatable Read
+    answer: 1
+    explanation: PostgreSQL detects the read/write dependencies between the transactions and refuses the second commit.
+  - id: q4
+    prompt: What should an application do when it receives SQLSTATE 40001?
+    options:
+      - Ignore it
+      - Retry the whole transaction
+      - Restart the database
+      - Switch to READ UNCOMMITTED
+    answer: 1
+    explanation: Serialization failures are expected under optimistic concurrency. The safe response is to rerun the transaction from the start.
+  - id: q5
+    prompt: Why does Repeatable Read not stop this anomaly (write skew)?
+    options:
+      - It only protects the rows a transaction has read from changing, not logical dependencies between what it read and what others write elsewhere
+      - It is not implemented in PostgreSQL
+      - It is implemented with table locks
+      - It only works for DELETE
+    answer: 0
+    explanation: Each transaction wrote different rows, so there is no write-write conflict to detect.
+  - id: q6
+    prompt: How does PostgreSQL implement SERIALIZABLE?
+    options:
+      - It runs all transactions one at a time
+      - Optimistically, on top of snapshots, tracking dependencies without blocking
+      - By locking the whole table
+      - By disabling concurrency in the connection pool
+    answer: 1
+    explanation: It is called Serializable Snapshot Isolation. Nothing blocks, and a transaction is aborted if it would break serial equivalence.

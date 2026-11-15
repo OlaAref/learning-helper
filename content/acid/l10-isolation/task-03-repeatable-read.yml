@@ -1,0 +1,50 @@
+id: t3-repeatable-read
+title: Make the read repeatable
+kind: concurrency
+difficulty: medium
+sessions: [A, B]
+statement: |
+  Repeat the previous scenario, but make A's two reads agree.
+
+  1. **A:** start the transaction at the right level (`BEGIN ISOLATION LEVEL REPEATABLE READ`) and `SELECT qty FROM sales WHERE pid = 1` (10).
+  2. **B:** `UPDATE sales SET qty = 15 WHERE pid = 1` (autocommit, it commits).
+  3. **A:** repeat the SELECT: it must still return **10**. Then `COMMIT`.
+
+  The committed value must be 15 even though A never saw it.
+setup: |
+  CREATE TABLE sales (pid int PRIMARY KEY, qty int, price int);
+  INSERT INTO sales VALUES (1, 10, 5), (2, 20, 4);
+hints:
+  - "The isolation level is chosen when the transaction starts."
+checks:
+  - type: result
+    description: A's first read was 10
+    session: A
+    nth: "1"
+    expect: [[10]]
+  - type: result
+    description: A's second read is still 10
+    session: A
+    nth: "2"
+    expect: [[10]]
+  - type: query
+    description: B's update was really committed (qty = 15)
+    sql: SELECT qty FROM sales WHERE pid = 1
+    expect: [[15]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: In PostgreSQL, Repeatable Read gives the transaction a snapshot at its first query. B's new row version is committed but invisible to A.
+  steps:
+    - session: A
+      sql: |
+        BEGIN ISOLATION LEVEL REPEATABLE READ;
+        SELECT qty FROM sales WHERE pid = 1;
+    - session: B
+      sql: UPDATE sales SET qty = 15 WHERE pid = 1;
+    - session: A
+      sql: SELECT qty FROM sales WHERE pid = 1;
+    - session: A
+      sql: COMMIT;

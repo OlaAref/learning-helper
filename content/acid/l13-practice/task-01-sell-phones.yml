@@ -1,0 +1,32 @@
+id: t1-sell-phones
+title: Sell 10 phones atomically
+kind: sql
+difficulty: easy
+statement: |
+  A sale is two writes: reduce the inventory and record the sale.
+
+  In one transaction, reduce the inventory of product 1 by 10 and insert a row into `sales` (`pid = 1, price = 1000, qty = 10`). Commit.
+
+  The invariant is: inventory + units sold = 100.
+setup: |
+  CREATE TABLE products (pid int PRIMARY KEY, name text, price int, inventory int);
+  CREATE TABLE sales (sale_id serial PRIMARY KEY, pid int, price int, qty int);
+  INSERT INTO products VALUES (1, 'phone', 1000, 100);
+checks:
+  - type: query
+    description: Inventory 90, 10 units sold, invariant 100
+    sql: SELECT p.inventory, (SELECT sum(qty) FROM sales WHERE pid = 1), p.inventory + (SELECT sum(qty) FROM sales WHERE pid = 1) FROM products p WHERE p.pid = 1
+    expect: [[90, 10, 100]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: Atomicity keeps the invariant true at every committed moment, isolation hides the half-finished state from other sessions.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE products SET inventory = inventory - 10 WHERE pid = 1;
+        INSERT INTO sales(pid, price, qty) VALUES (1, 1000, 10);
+        COMMIT;

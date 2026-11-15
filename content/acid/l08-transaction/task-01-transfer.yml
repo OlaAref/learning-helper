@@ -1,0 +1,35 @@
+id: t1-transfer
+title: Transfer $100 in one transaction
+kind: sql
+difficulty: easy
+statement: |
+  Alice (account 1) sends $100 to Bob (account 2).
+
+  In **one transaction**, debit account 1 by 100, credit account 2 by 100, and commit.
+  Use `BEGIN` and `COMMIT` yourself: nothing is saved until you commit.
+
+  Tables: `accounts(id, owner, balance)` with balances 1000 and 500.
+setup: |
+  CREATE TABLE accounts (id int PRIMARY KEY, owner text, balance int NOT NULL CHECK (balance >= 0));
+  INSERT INTO accounts VALUES (1, 'alice', 1000), (2, 'bob', 500);
+hints:
+  - "Open the transaction with BEGIN; then run two UPDATE statements with balance = balance - 100 / + 100."
+  - "End with COMMIT; and look at the table again."
+checks:
+  - type: query
+    description: Alice has 900 and Bob has 600
+    sql: SELECT id, balance FROM accounts ORDER BY id
+    expect: [[1, 900], [2, 600]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: One BEGIN ... COMMIT around both updates makes them a single unit of work.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+        UPDATE accounts SET balance = balance + 100 WHERE id = 2;
+        COMMIT;

@@ -1,0 +1,33 @@
+id: t1-like-in-one-transaction
+title: Keep the like counter consistent
+kind: sql
+difficulty: easy
+statement: |
+  `pictures.likes` is a denormalized counter, `likes` holds one row per (user, picture).
+
+  John likes picture 1. In **one transaction**, insert his row into `likes` and increment `pictures.likes` for picture 1, then commit.
+
+  Afterwards, for every picture the counter must equal the number of rows in `likes`.
+setup: |
+  CREATE TABLE pictures (id int PRIMARY KEY, likes int NOT NULL DEFAULT 0 CHECK (likes >= 0));
+  CREATE TABLE likes (user_name text, picture_id int REFERENCES pictures(id) ON DELETE CASCADE, PRIMARY KEY (user_name, picture_id));
+  INSERT INTO pictures VALUES (1, 0), (2, 1);
+  INSERT INTO likes VALUES ('maria', 2);
+checks:
+  - type: query
+    description: For each picture, counter equals the real number of likes
+    sql: SELECT p.id, p.likes, (SELECT count(*) FROM likes l WHERE l.picture_id = p.id) FROM pictures p ORDER BY p.id
+    expect: [[1, 1, 1], [2, 1, 1]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: Both writes in one transaction means a crash or error between them can never leave the counter and the rows disagreeing.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        INSERT INTO likes(user_name, picture_id) VALUES ('john', 1);
+        UPDATE pictures SET likes = likes + 1 WHERE id = 1;
+        COMMIT;

@@ -1,0 +1,40 @@
+id: t1-catch-a-phantom
+title: Catch a phantom read
+kind: concurrency
+difficulty: medium
+sessions: [A, B]
+statement: |
+  1. **A:** `BEGIN;` then `SELECT count(*) FROM sales WHERE qty >= 10;` (2 rows match).
+  2. **B:** `INSERT INTO sales VALUES (3, 10, 10);` (autocommit).
+  3. **A:** run the same count: a new row appeared (**3**). Then `COMMIT;`.
+setup: |
+  CREATE TABLE sales (pid int PRIMARY KEY, qty int, price int);
+  INSERT INTO sales VALUES (1, 10, 5), (2, 20, 4);
+checks:
+  - type: result
+    description: First count is 2
+    session: A
+    nth: "1"
+    expect: [[2]]
+  - type: result
+    description: Second count is 3 (a phantom appeared)
+    session: A
+    nth: "2"
+    expect: [[3]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: At READ COMMITTED each query takes a fresh view, so a committed insert that matches the filter shows up in the repeated range query.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        SELECT count(*) FROM sales WHERE qty >= 10;
+    - session: B
+      sql: INSERT INTO sales VALUES (3, 10, 10);
+    - session: A
+      sql: SELECT count(*) FROM sales WHERE qty >= 10;
+    - session: A
+      sql: COMMIT;

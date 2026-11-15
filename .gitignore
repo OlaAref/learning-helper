@@ -1,0 +1,10 @@
+target/
+data/
+.env
+.env.example
+node_modules/
+ui/dist/
+gateway/src/main/resources/static/
+_to_delete/
+.idea/
+*.iml

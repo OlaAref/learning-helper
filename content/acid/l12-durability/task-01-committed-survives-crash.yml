@@ -1,0 +1,34 @@
+id: t1-committed-survives-crash
+title: Committed data survives a crash
+kind: crash
+difficulty: medium
+statement: |
+  On the crash server:
+
+  1. **Commit** a new product: `INSERT INTO products VALUES (2, 'tv', 10);` (autocommit is fine).
+  2. Start a transaction that reduces the phone inventory by 10 but do **not** commit.
+  3. **Kill server**, then **Start server**.
+
+  After recovery the TV row must still exist (durability) and the phone inventory must be 100 (the uncommitted work is gone).
+setup: |
+  CREATE TABLE products (pid int PRIMARY KEY, name text, inventory int);
+  INSERT INTO products VALUES (1, 'phone', 100);
+checks:
+  - type: chaos
+    description: The server was killed at least once
+    killed: true
+  - type: query
+    description: The TV survived and the phone inventory is back to 100
+    sql: SELECT pid, name, inventory FROM products ORDER BY pid
+    expect: [[1, phone, 100], [2, tv, 10]]
+solution:
+  explanation: The commit returned only after its WAL record was flushed, so recovery can replay it. The open transaction's change was never committed, so it is discarded.
+  steps:
+    - session: A
+      sql: INSERT INTO products VALUES (2, 'tv', 10);
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE products SET inventory = inventory - 10 WHERE pid = 1;
+    - chaos: kill
+    - chaos: start

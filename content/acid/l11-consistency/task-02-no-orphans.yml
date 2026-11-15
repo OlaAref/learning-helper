@@ -1,0 +1,35 @@
+id: t2-no-orphans
+title: Let the database prevent orphans
+kind: sql
+difficulty: medium
+statement: |
+  The `likes` table has a foreign key to `pictures` with `ON DELETE CASCADE`.
+
+  1. Try to insert a like by `john` for picture **99**, which does not exist. The database must refuse (foreign key violation).
+  2. Delete picture **2**, which has a like by maria. The like must disappear with it.
+setup: |
+  CREATE TABLE pictures (id int PRIMARY KEY, likes int NOT NULL DEFAULT 0 CHECK (likes >= 0));
+  CREATE TABLE likes (user_name text, picture_id int REFERENCES pictures(id) ON DELETE CASCADE, PRIMARY KEY (user_name, picture_id));
+  INSERT INTO pictures VALUES (1, 0), (2, 1);
+  INSERT INTO likes VALUES ('maria', 2);
+hints:
+  - "A failed statement outside BEGIN does not leave a transaction open, so you can just run the next statement."
+checks:
+  - type: error
+    description: The insert for picture 99 failed with a foreign key violation (23503)
+    sqlstate: "23503"
+  - type: query
+    description: Picture 2 is gone
+    sql: SELECT count(*) FROM pictures WHERE id = 2
+    expect: [[0]]
+  - type: query
+    description: Its like was removed by the cascade
+    sql: SELECT count(*) FROM likes WHERE picture_id = 2
+    expect: [[0]]
+solution:
+  explanation: Constraints keep the data consistent regardless of what the application does. The cascade removes the dependent rows in the same statement.
+  steps:
+    - session: A
+      sql: INSERT INTO likes(user_name, picture_id) VALUES ('john', 99);
+    - session: A
+      sql: DELETE FROM pictures WHERE id = 2;

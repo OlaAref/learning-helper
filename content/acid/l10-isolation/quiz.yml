@@ -1,0 +1,67 @@
+questions:
+  - id: q1
+    prompt: What is a dirty read?
+    options:
+      - Reading a row that was deleted long ago
+      - Reading data that another transaction wrote but has not committed yet
+      - Reading the same row twice and getting the same value
+      - Reading from a replica that lags behind
+    answer: 1
+    explanation: The other transaction may still roll back, so you acted on a value that never officially existed.
+  - id: q2
+    kind: predict
+    prompt: "At READ COMMITTED, what does the last SELECT in T1 return? (qty of product 1 is 10; T2 commits its UPDATE between T1's two SELECTs.)"
+    code: |
+      -- T1                                   -- T2
+      BEGIN;
+      SELECT qty FROM sales WHERE pid = 1;    -- 10
+                                              UPDATE sales SET qty = 15 WHERE pid = 1;  -- autocommit
+      SELECT qty FROM sales WHERE pid = 1;    -- ?
+      COMMIT;
+    options: ["10", "15", "An error", "NULL"]
+    answer: 1
+    explanation: Read Committed sees anything committed before each query starts. This is a non-repeatable read.
+  - id: q3
+    kind: predict
+    prompt: "Same scenario, but T1 started with BEGIN ISOLATION LEVEL REPEATABLE READ. What does T1's second SELECT return?"
+    options: ["10", "15", "An error", "NULL"]
+    answer: 0
+    explanation: Repeatable Read freezes what the transaction has read (in PostgreSQL, a snapshot taken at the first query), so it keeps seeing 10 even though 15 is committed.
+  - id: q4
+    prompt: Which phenomena can still happen at READ COMMITTED according to the SQL standard?
+    options:
+      - Dirty reads only
+      - Non-repeatable reads and phantom reads
+      - None of them
+      - Only lost updates
+    answer: 1
+    explanation: Read Committed prevents dirty reads only. Non-repeatable and phantom reads remain possible (PostgreSQL's Serializable also prevents write skew).
+  - id: q5
+    kind: predict
+    prompt: "qty is 10. T1 and T2 both read 10 at the same time. T1 then writes `qty = 20` (10 + 10) and T2 writes `qty = 15` (10 + 5), T2 first and T1 second. What is the final qty?"
+    options: ["25", "15", "20", "10"]
+    answer: 2
+    explanation: This is a lost update. The last writer wins with a value computed from a stale read, so T2's +5 is lost. The correct total would be 25.
+  - id: q6
+    prompt: What is the default isolation level in PostgreSQL?
+    options: [Read Uncommitted, Read Committed, Repeatable Read, Serializable]
+    answer: 1
+    explanation: PostgreSQL defaults to Read Committed (and treats Read Uncommitted as Read Committed). MySQL InnoDB defaults to Repeatable Read.
+  - id: q7
+    prompt: What is the difference between pessimistic and optimistic concurrency control?
+    options:
+      - Pessimistic takes locks up front; optimistic takes none and fails a transaction that conflicts, so the app must retry
+      - Pessimistic is for reads, optimistic is for writes
+      - Optimistic locks the whole table, pessimistic locks a row
+      - There is no practical difference
+    answer: 0
+    explanation: Locks make others wait (and cost memory). Optimistic schemes let everyone run and abort a loser, which pushes retry logic into the application.
+  - id: q8
+    prompt: How does PostgreSQL make a long Repeatable Read transaction keep seeing old values?
+    options:
+      - It copies the whole database for each transaction
+      - It writes a new row version on every UPDATE and the transaction keeps reading the version from its snapshot
+      - It overwrites the row and reads the old value from an undo log
+      - It blocks all writers until the transaction ends
+    answer: 1
+    explanation: PostgreSQL never overwrites a row in place (MVCC). MySQL InnoDB and Oracle update in place and rebuild old values from an undo log.

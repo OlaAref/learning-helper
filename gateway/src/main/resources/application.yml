@@ -1,0 +1,40 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+services:                        # where each microservice listens
+  notion:
+    url: http://127.0.0.1:8081
+  db-lab:
+    url: http://127.0.0.1:8082
+spring:
+  application:
+    name: gateway
+  threads:
+    virtual:
+      enabled: true
+  servlet:
+    multipart:                   # image uploads to notion-service pass through here
+      max-file-size: 20MB
+      max-request-size: 21MB
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            # /api/notion/pages -> notion-service /api/pages
+            - id: notion-service
+              uri: ${services.notion.url}
+              predicates:
+                - Path=/api/notion/**
+              filters:
+                - RewritePath=/api/notion/?(?<rest>.*), /api/$\{rest}
+            # /api/db/overview -> db-lab-service /api/overview
+            - id: db-lab-service
+              uri: ${services.db-lab.url}
+              predicates:
+                - Path=/api/db/**
+              filters:
+                - RewritePath=/api/db/?(?<rest>.*), /api/$\{rest}
+logging:
+  level:
+    root: INFO

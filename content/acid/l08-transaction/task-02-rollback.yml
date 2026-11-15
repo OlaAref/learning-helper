@@ -1,0 +1,40 @@
+id: t2-rollback
+title: Change your mind with ROLLBACK
+kind: sql
+difficulty: easy
+statement: |
+  Start a transaction that withdraws **300** from account 1.
+
+  1. `BEGIN`, then update the balance.
+  2. Inside the transaction, `SELECT balance` for account 1. It must show **700**.
+  3. `ROLLBACK`.
+
+  Afterwards the balance must be 1000 again and no transaction may remain open.
+setup: |
+  CREATE TABLE accounts (id int PRIMARY KEY, owner text, balance int NOT NULL CHECK (balance >= 0));
+  INSERT INTO accounts VALUES (1, 'alice', 1000), (2, 'bob', 500);
+hints:
+  - "The first SELECT you run must be the one inside the transaction. The checker looks at the first result you got."
+checks:
+  - type: result
+    description: Inside the transaction your SELECT showed 700
+    session: A
+    nth: "1"
+    expect: [[700]]
+  - type: query
+    description: After the rollback Alice has 1000 again
+    sql: SELECT balance FROM accounts WHERE id = 1
+    expect: [[1000]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: The change is visible to your own transaction, but ROLLBACK throws it away before anyone else could see it.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE accounts SET balance = balance - 300 WHERE id = 1;
+        SELECT balance FROM accounts WHERE id = 1;
+        ROLLBACK;

@@ -1,0 +1,38 @@
+id: t2-async-commit
+title: Relax durability for one transaction
+kind: sql
+difficulty: medium
+statement: |
+  PostgreSQL can trade durability for speed per transaction.
+
+  1. `BEGIN;`
+  2. `SET LOCAL synchronous_commit TO off;`
+  3. `SHOW synchronous_commit;` (**off**)
+  4. `COMMIT;`
+  5. `SHOW synchronous_commit;` again: the setting was local to the transaction, so it is **on** again.
+
+  Run steps 1 to 4 in one go if you like; the checker reads your two SHOW results.
+hints:
+  - "SET LOCAL only lasts until the end of the current transaction."
+checks:
+  - type: result
+    description: Inside the transaction the setting was off
+    session: A
+    nth: "1"
+    expect: [["off"]]
+  - type: result
+    description: After the commit it is back to on
+    session: A
+    nth: "2"
+    expect: [["on"]]
+solution:
+  explanation: "Commits of this transaction may return before the WAL is flushed: a crash can lose it, but never corrupt the database."
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        SET LOCAL synchronous_commit TO off;
+        SHOW synchronous_commit;
+        COMMIT;
+    - session: A
+      sql: SHOW synchronous_commit;

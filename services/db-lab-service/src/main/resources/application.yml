@@ -1,0 +1,33 @@
+spring.application.name: db-lab-service
+server:
+  address: 127.0.0.1
+  port: 8082
+spring:
+  threads:
+    virtual:
+      enabled: true
+lab:
+  content-dir: ../../content          # relative to services/db-lab-service
+  progress-file: ../../data/db-lab/progress.yml
+  execute-wait-ms: 1500          # how long a request waits before showing a statement as "still running"
+  targets:                       # PostgreSQL servers from compose.yaml; url points at the maintenance database
+    main:
+      url: jdbc:postgresql://127.0.0.1:5433/postgres
+      user: postgres
+      password: postgres
+    crash:                       # killed and restarted by crash tasks
+      url: jdbc:postgresql://127.0.0.1:5434/postgres
+      user: postgres
+      password: postgres
+  chaos:
+    kill-command: docker kill dblab-crash
+    start-command: docker start dblab-crash
+    ready-timeout-ms: 30000
+logging:
+  level:
+    root: INFO
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

@@ -1,0 +1,52 @@
+id: t2-consistent-report
+title: A report that ignores concurrent sales
+kind: concurrency
+difficulty: medium
+sessions: [A, B]
+statement: |
+  **A** prints a report while **B** keeps selling.
+
+  1. **A:** `BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;` then `SELECT count(*) FROM sales;` (1 sale).
+  2. **B:** insert a new sale: `INSERT INTO sales(pid, price, qty) VALUES (1, 1000, 10);`
+  3. **A:** run the count again: still **1**. Then `COMMIT;`.
+  4. **A:** count once more: now **2**.
+setup: |
+  CREATE TABLE products (pid int PRIMARY KEY, name text, price int, inventory int);
+  CREATE TABLE sales (sale_id serial PRIMARY KEY, pid int, price int, qty int);
+  INSERT INTO products VALUES (1, 'phone', 1000, 100);
+  INSERT INTO sales(pid, price, qty) VALUES (1, 1000, 4);
+checks:
+  - type: result
+    description: Report, first count is 1
+    session: A
+    nth: "1"
+    expect: [[1]]
+  - type: result
+    description: Report, second count is still 1 although B committed
+    session: A
+    nth: "2"
+    expect: [[1]]
+  - type: result
+    description: After the report transaction ended the count is 2
+    session: A
+    nth: "3"
+    expect: [[2]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: A read-only Repeatable Read transaction sees one snapshot for its whole life, which is what a report needs.
+  steps:
+    - session: A
+      sql: |
+        BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY;
+        SELECT count(*) FROM sales;
+    - session: B
+      sql: INSERT INTO sales(pid, price, qty) VALUES (1, 1000, 10);
+    - session: A
+      sql: SELECT count(*) FROM sales;
+    - session: A
+      sql: COMMIT;
+    - session: A
+      sql: SELECT count(*) FROM sales;

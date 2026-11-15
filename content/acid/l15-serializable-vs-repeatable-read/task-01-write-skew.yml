@@ -1,0 +1,40 @@
+id: t1-write-skew
+title: Write skew at Repeatable Read
+kind: concurrency
+difficulty: hard
+sessions: [A, B]
+statement: |
+  Table `t` holds four rows: `a, a, b, b` (ordered by id). Serial execution could only end with all `a` or all `b`.
+
+  1. **A:** `BEGIN ISOLATION LEVEL REPEATABLE READ;` then `UPDATE t SET f = 'b' WHERE f = 'a';`
+  2. **B:** `BEGIN ISOLATION LEVEL REPEATABLE READ;` then `UPDATE t SET f = 'a' WHERE f = 'b';`
+  3. **A:** `COMMIT;` then **B:** `COMMIT;`. Both succeed.
+
+  The final table is `b, b, a, a`, which matches no serial order.
+setup: |
+  CREATE TABLE t (id serial PRIMARY KEY, f text);
+  INSERT INTO t(f) VALUES ('a'), ('a'), ('b'), ('b');
+checks:
+  - type: query
+    description: The table ended as b, b, a, a
+    sql: SELECT string_agg(f, ',' ORDER BY id) FROM t
+    expect: [["b,b,a,a"]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: Each transaction updated different rows from its own snapshot, so there is no write-write conflict. Repeatable Read cannot see the dependency between them.
+  steps:
+    - session: A
+      sql: |
+        BEGIN ISOLATION LEVEL REPEATABLE READ;
+        UPDATE t SET f = 'b' WHERE f = 'a';
+    - session: B
+      sql: |
+        BEGIN ISOLATION LEVEL REPEATABLE READ;
+        UPDATE t SET f = 'a' WHERE f = 'b';
+    - session: A
+      sql: COMMIT;
+    - session: B
+      sql: COMMIT;

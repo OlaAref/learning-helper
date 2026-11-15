@@ -1,0 +1,36 @@
+questions:
+  - id: q1
+    prompt: Why is a phantom read not simply a non-repeatable read?
+    options:
+      - Because phantoms only happen with DELETE
+      - Because the new row did not exist when you ran the query, so you never read it before
+      - Because phantoms involve two databases
+      - Because phantoms are caused by crashes
+    answer: 1
+    explanation: A non-repeatable read changes a row you already read. A phantom is a new row that shows up in a repeated range query.
+  - id: q2
+    prompt: Why can plain row locks not prevent phantoms?
+    options:
+      - Row locks do not exist
+      - You cannot lock a row that does not exist yet
+      - Locks only work at SERIALIZABLE
+      - Phantoms are always caused by DELETE
+    answer: 1
+    explanation: Preventing phantoms needs range protection (gap/predicate locks) or a snapshot that simply ignores newer rows.
+  - id: q3
+    kind: predict
+    prompt: "In PostgreSQL at REPEATABLE READ, T1 runs the first query, T2 inserts a matching row and commits, then T1 repeats the query. What does the second count return?"
+    code: |
+      -- T1: BEGIN ISOLATION LEVEL REPEATABLE READ;
+      SELECT count(*) FROM sales WHERE qty >= 10;   -- 2
+      -- T2: INSERT INTO sales VALUES (3, 10, 10);  -- commits
+      SELECT count(*) FROM sales WHERE qty >= 10;   -- ?
+    options: ["2", "3", "An error", "NULL"]
+    answer: 0
+    explanation: PostgreSQL's Repeatable Read is snapshot isolation, so newer rows never appear. The SQL standard would allow a phantom here.
+  - id: q4
+    kind: predict
+    prompt: "The same scenario at READ COMMITTED. What does the second count return?"
+    options: ["2", "3", "An error", "NULL"]
+    answer: 1
+    explanation: Each query sees everything committed before it starts, so the new row appears.

@@ -1,0 +1,48 @@
+questions:
+  - id: q1
+    prompt: What is a transaction?
+    options:
+      - A single SQL query that changes one row
+      - A collection of SQL queries treated as one unit of work
+      - A backup of the database taken at a point in time
+      - A network request between application and database
+    answer: 1
+    explanation: A transaction groups the queries of one logical action (for example a money transfer) so that they succeed or fail together.
+  - id: q2
+    prompt: You run a single `UPDATE accounts SET balance = 0 WHERE id = 1;` without typing BEGIN. What happens?
+    options:
+      - It is not part of any transaction, so it can be half-applied
+      - It runs inside an implicit transaction that commits immediately (autocommit)
+      - It waits for you to type COMMIT
+      - It is rejected by the database
+    answer: 1
+    explanation: Every statement runs inside a transaction. When you do not open one yourself the database wraps the statement in an implicit transaction and commits it right away.
+  - id: q3
+    kind: predict
+    prompt: "accounts has (id 1, balance 1000). What does the last query return?"
+    code: |
+      BEGIN;
+      UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+      ROLLBACK;
+      SELECT balance FROM accounts WHERE id = 1;
+    options: ["900", "1000", "An error: no transaction is active", "NULL"]
+    answer: 1
+    explanation: ROLLBACK discards every change made since BEGIN, so the balance is still 1000.
+  - id: q4
+    prompt: Why are very long transactions discouraged?
+    options:
+      - SQL limits a transaction to 100 queries
+      - Rolling back or recovering after a crash can take very long, and they hold resources the whole time
+      - They cannot be committed
+      - They make indexes invalid
+    answer: 1
+    explanation: The more a transaction has written, the more must be undone on rollback or crash recovery, and it keeps memory and locks busy meanwhile. The instructor has seen rollbacks take over an hour.
+  - id: q5
+    prompt: In PostgreSQL a statement inside BEGIN ... fails with an error, and you then type COMMIT. What happens?
+    options:
+      - The statements before the error are committed
+      - The whole transaction is rolled back; COMMIT acts as ROLLBACK
+      - Only the failed statement is skipped
+      - PostgreSQL asks you to retry the statement
+    answer: 1
+    explanation: After an error the transaction is marked aborted, later statements fail with "current transaction is aborted", and COMMIT performs a rollback.

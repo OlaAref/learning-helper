@@ -1,0 +1,41 @@
+id: t1-failing-transfer
+title: A failing transfer must leave no trace
+kind: sql
+difficulty: easy
+statement: |
+  The `accounts` table forbids negative balances (`CHECK (balance >= 0)`).
+
+  In one transaction:
+
+  1. Debit **100** from account 1. This works.
+  2. Debit **5000** from account 2 (it only has 500). The database rejects it.
+  3. End the transaction with `ROLLBACK`.
+
+  Check that even the first, successful debit is gone.
+setup: |
+  CREATE TABLE accounts (id int PRIMARY KEY, owner text, balance int NOT NULL CHECK (balance >= 0));
+  INSERT INTO accounts VALUES (1, 'alice', 1000), (2, 'bob', 500);
+hints:
+  - "After the error, PostgreSQL marks the transaction aborted; only ROLLBACK is accepted."
+checks:
+  - type: error
+    description: One statement failed with the check-constraint error 23514
+    sqlstate: "23514"
+  - type: query
+    description: Both balances are unchanged (1000 and 500)
+    sql: SELECT id, balance FROM accounts ORDER BY id
+    expect: [[1, 1000], [2, 500]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: Atomicity means the successful debit disappears together with the failed one.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE accounts SET balance = balance - 100 WHERE id = 1;
+        UPDATE accounts SET balance = balance - 5000 WHERE id = 2;
+    - session: A
+      sql: ROLLBACK;

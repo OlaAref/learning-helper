@@ -1,0 +1,30 @@
+spring.application.name: notion-service
+server:
+  address: 127.0.0.1
+  port: 8081
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
+  threads:
+    virtual:
+      enabled: true
+notion:
+  token: ${NOTION_TOKEN:}
+  version: "2026-03-11"
+  markdown-version: v2         # Notion-flavored Markdown (v1 is deprecated)
+  mirror-scope: all            # "all" or a list of root page ids
+sync:
+  local-folder: D:/Project/learning-helper/data/notion-pages
+  interval: 60s
+  mode: auto                   # auto | manual
+  push-enabled: true          # true = local edits and new folders are sent to Notion
+logging:
+  level:
+    com.olaaref.notionmirror.notion.http: DEBUG   # every Notion request and response; set to INFO to silence
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

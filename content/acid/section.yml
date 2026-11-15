@@ -1,0 +1,15 @@
+id: acid
+course: Fundamentals of Database Engineering
+title: ACID
+notes: "Fundamentals of Database Engineering / ACID"   # the page in notion-mirror
+lectures:
+  - {id: l07-introduction, number: 7, title: "Introduction to ACID"}
+  - {id: l08-transaction, number: 8, title: "What is a Transaction?"}
+  - {id: l09-atomicity, number: 9, title: "Atomicity"}
+  - {id: l10-isolation, number: 10, title: "Isolation"}
+  - {id: l11-consistency, number: 11, title: "Consistency"}
+  - {id: l12-durability, number: 12, title: "Durability"}
+  - {id: l13-practice, number: 13, title: "ACID by Practical Examples"}
+  - {id: l14-phantom-reads, number: 14, title: "Phantom Reads"}
+  - {id: l15-serializable-vs-repeatable-read, number: 15, title: "Serializable vs Repeatable Read"}
+  - {id: l16-eventual-consistency, number: 16, title: "Eventual Consistency"}

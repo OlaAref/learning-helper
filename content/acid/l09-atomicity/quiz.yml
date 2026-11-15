@@ -1,0 +1,46 @@
+questions:
+  - id: q1
+    prompt: A transaction has 100 queries. Queries 1 to 98 succeed and query 99 fails. What must an atomic database do?
+    options:
+      - Keep the 98 successful changes and skip query 99
+      - Roll back all of them, so none of the changes remain
+      - Commit and report an error
+      - Retry query 99 forever
+    answer: 1
+    explanation: Atomic means indivisible. A failed query fails the whole transaction and every change it made is undone.
+  - id: q2
+    prompt: The database crashes after the first UPDATE of a transfer but before COMMIT. With atomicity, what is true after restart?
+    options:
+      - The debit stays and the credit is lost
+      - The partial debit is undone, so the accounts are as before the transaction
+      - The database finishes the transfer on its own
+      - The data is left for the DBA to fix by hand
+    answer: 1
+    explanation: On restart the database sees a transaction that never committed and rolls its partial work back.
+  - id: q3
+    prompt: Who issues the ROLLBACK when the database process crashes mid-transaction?
+    options:
+      - The application, after it reconnects
+      - The database itself, during crash recovery when it starts again
+      - The operating system
+      - Nobody; it is not needed
+    answer: 1
+    explanation: Nobody can send ROLLBACK to a dead server. Crash recovery detects in-flight transactions at startup and undoes them.
+  - id: q4
+    prompt: Without atomicity, what is the likely outcome of a crash between the debit and the credit of a transfer?
+    options:
+      - Money appears twice
+      - Money vanishes and the data is inconsistent
+      - Nothing, the database retries automatically
+      - Both accounts are locked forever
+    answer: 1
+    explanation: The debit was written and the credit never happened, so the total of all balances is lower than before.
+  - id: q5
+    prompt: Why can crash recovery of a long transaction be slow?
+    options:
+      - The database must undo everything the transaction already wrote before it can serve normally
+      - The database has to re-run the transaction from scratch
+      - Disks are slow at reading indexes
+      - The operating system must be rebooted
+    answer: 0
+    explanation: The more the transaction wrote before the crash, the more must be undone. On some engines the database could not accept work until it finished. Keep transactions short.

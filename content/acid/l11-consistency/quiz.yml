@@ -1,0 +1,53 @@
+questions:
+  - id: q1
+    prompt: What does "consistency in data" mean in the lectures?
+    options:
+      - Every replica holds the same value
+      - The stored data obeys the rules of the data model, such as constraints and referential integrity
+      - Every query returns in the same time
+      - All tables have the same number of rows
+    answer: 1
+    explanation: "Consistency in data is about the stored state being valid: no orphan rows, counters matching real rows, no negative balances if the model forbids them."
+  - id: q2
+    prompt: "A `likes` row points at a picture that was deleted. Which feature prevents this orphan?"
+    options:
+      - A CHECK constraint on user_name
+      - A foreign key from likes.picture_id to pictures.id (with ON DELETE CASCADE if likes should vanish too)
+      - An index on picture_id
+      - A longer transaction
+    answer: 1
+    explanation: Referential integrity is exactly what foreign keys enforce. Without it the database happily keeps rows that point at nothing.
+  - id: q3
+    prompt: Who defines what "consistent" means for your data?
+    options:
+      - The database vendor
+      - You, the designer. The database only enforces the rules you encode as constraints and transactions
+      - The operating system
+      - The SQL standard
+    answer: 1
+    explanation: Consistency is application specific. The database can only keep rules it has been told about.
+  - id: q4
+    kind: predict
+    prompt: "pictures.likes for picture 1 is 0. The app crashes after the INSERT below, before the UPDATE and COMMIT. After recovery, what is true?"
+    code: |
+      BEGIN;
+      INSERT INTO likes(user_name, picture_id) VALUES ('john', 1);
+      -- crash here
+      UPDATE pictures SET likes = likes + 1 WHERE id = 1;
+      COMMIT;
+    options:
+      - There is a like by john but the counter is still 0
+      - There is no like row and the counter is 0: both are consistent
+      - The counter is 1 but there is no like row
+      - The database refuses to start
+    answer: 1
+    explanation: Atomicity rolled the insert back, so the data is consistent. That is why both writes belong in one transaction.
+  - id: q5
+    prompt: Which missing property can leave you with inconsistent data?
+    options:
+      - Only atomicity
+      - Only isolation
+      - Any of atomicity, isolation or durability
+      - None, consistency is independent
+    answer: 2
+    explanation: Atomicity (half-applied changes), isolation (reports over moving data) and durability (acknowledged commits that vanish) all break data validity from someone's point of view.

@@ -1,0 +1,42 @@
+id: t2-crash-before-commit
+title: Crash before COMMIT
+kind: crash
+difficulty: medium
+statement: |
+  This task runs on a dedicated PostgreSQL server that you can kill and restart.
+
+  1. In session A: `BEGIN`, then reduce `inventory` of product 1 by 10, then `SELECT inventory` (you see **90**). Do **not** commit.
+  2. Press **Kill server** (a hard kill, like pulling the power plug).
+  3. Press **Start server** and wait until it is back.
+  4. `SELECT inventory` again. The uncommitted deduction must be gone.
+setup: |
+  CREATE TABLE products (pid int PRIMARY KEY, name text, inventory int);
+  INSERT INTO products VALUES (1, 'phone', 100);
+hints:
+  - "The first SELECT you run must be the one inside the transaction (it shows 90)."
+  - "After the restart your session reconnects automatically on the next statement."
+checks:
+  - type: result
+    description: Inside the transaction the SELECT showed 90
+    session: A
+    nth: "1"
+    expect: [[90]]
+  - type: chaos
+    description: The server was killed at least once
+    killed: true
+  - type: query
+    description: After recovery the inventory is 100 again
+    sql: SELECT inventory FROM products WHERE pid = 1
+    expect: [[100]]
+solution:
+  explanation: Crash recovery found a transaction that never committed and undid its work. Nobody had to type ROLLBACK.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        UPDATE products SET inventory = inventory - 10 WHERE pid = 1;
+        SELECT inventory FROM products WHERE pid = 1;
+    - chaos: kill
+    - chaos: start
+    - session: A
+      sql: SELECT inventory FROM products WHERE pid = 1;

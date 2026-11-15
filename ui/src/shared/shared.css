@@ -1,0 +1,39 @@
+/* Colour tokens and base rules shared by every screen. Feature styles live in notion/notion.css and dblab/dblab.css. */
+.lt{--bg:#FBFAF8;--side:#F3F1EC;--card:#FFFFFF;--panel:#F7F5F0;--line:#E3E0D8;--line2:#D9D5CB;--ink:#1F1E1B;--ink2:#2D2B27;--ink3:#3F3B34;--muted:#5E5A52;--sel:#E4E1D8;--acc:#1F6F5C;--okBg:#DDF1EA;--okFg:#11513F;--warnBg:#FFF1D6;--warnFg:#7A4B00;--errBg:#FDE4E1;--err:#B42318}
+.dk{--bg:#151513;--side:#1C1C19;--card:#1F1F1C;--panel:#191917;--line:#34332E;--line2:#46443D;--ink:#F1EFE9;--ink2:#DAD7CE;--ink3:#C2BEB3;--muted:#A19D91;--sel:#2D2D28;--acc:#5CC4A8;--okBg:#17352D;--okFg:#8EE0C8;--warnBg:#3B2B0E;--warnFg:#F2C26B;--errBg:#3F1D19;--err:#F97066}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Inter',system-ui,sans-serif}
+button,input,select,textarea{font-family:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--acc)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.app{display:flex;min-height:100vh;background:var(--bg);color:var(--ink)}
+.label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;font-size:12px;font-weight:500;padding:4px 10px;border-radius:99px}
+.chip.ok{background:var(--okBg);color:var(--okFg)} .chip.warn{background:var(--warnBg);color:var(--warnFg)}
+
+/* "All projects" link at the bottom of both sidebars */
+.backlink{display:inline-flex;align-items:center;gap:6px;min-height:44px;text-decoration:none}
+.backlink:hover{text-decoration:underline}
+
+/* Home screen */
+.home{justify-content:center;padding:72px 32px}
+.home-inner{width:100%;max-width:1040px;display:flex;flex-direction:column;gap:48px}
+.home-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px}
+.home-eyebrow{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.home-eyebrow .label{font-size:13px}
+.home-logo{width:32px;height:32px;border-radius:8px;background:#1F6F5C;color:#fff;display:flex;align-items:center;justify-content:center}
+.home-title{margin:0 0 10px;font-size:40px;line-height:1.15;font-weight:700;letter-spacing:-.02em}
+.home-lead{margin:0;max-width:620px;font-size:16px;line-height:1.6;color:var(--ink3)}
+.home-theme{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 14px;border:1px solid var(--line2);background:var(--card);border-radius:8px;font-size:13px;font-weight:500}
+.home-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px}
+.home-card{display:flex;flex-direction:column;gap:20px;padding:28px;background:var(--card);border:1.5px solid var(--line);border-radius:16px;text-decoration:none;color:var(--ink)}
+.home-card:hover{border-color:var(--acc)}
+.home-cardtop{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.home-icon{width:48px;height:48px;border-radius:12px;background:var(--okBg);color:var(--okFg);display:flex;align-items:center;justify-content:center}
+.home-name{margin:0 0 8px;font-size:24px;font-weight:700;letter-spacing:-.01em}
+.home-desc{margin:0;font-size:15px;line-height:1.6;color:var(--ink3)}
+.home-tags{display:flex;flex-wrap:wrap;gap:8px}
+.home-tag{font-size:12.5px;color:var(--ink3);background:var(--sel);border-radius:6px;padding:4px 8px}
+.home-open{margin-top:auto;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--acc)}
+@media (max-width:700px){.home{padding:32px 16px}.home-title{font-size:30px}}

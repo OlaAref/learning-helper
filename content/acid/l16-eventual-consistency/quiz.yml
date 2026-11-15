@@ -1,0 +1,47 @@
+questions:
+  - id: q1
+    prompt: What does "eventually consistent" mean?
+    options:
+      - Reads are always up to date
+      - Given enough time without new writes, all copies of the data converge to the same value
+      - Data is never lost
+      - Writes are rejected until all replicas agree
+    answer: 1
+    explanation: In between, a read can return an old value from a copy that has not caught up.
+  - id: q2
+    prompt: A user commits a write on the leader and a read through the load balancer returns the old value from a follower. This is a problem of
+    options: [Atomicity, Consistency in reads, Durability, Foreign keys]
+    answer: 1
+    explanation: The data is valid, but the read is stale because the follower lags behind the leader.
+  - id: q3
+    prompt: Can eventual consistency repair data that is corrupt because of missing atomicity?
+    options:
+      - Yes, replicas will agree on the correct value
+      - No, waiting only synchronizes copies, it does not make invalid data valid
+      - Yes, if the cache is cleared
+      - Only in NoSQL databases
+    answer: 1
+    explanation: Eventual consistency is about copies agreeing. Half-applied transactions stay broken.
+  - id: q4
+    prompt: What is the trade-off of synchronous replication?
+    options:
+      - Weaker consistency but faster writes
+      - Stronger consistency but slower writes (the write waits for replicas)
+      - No trade-off
+      - It removes the need for transactions
+    answer: 1
+    explanation: Asynchronous replication is faster but only eventually consistent.
+  - id: q5
+    prompt: Putting a Redis cache in front of PostgreSQL adds
+    options:
+      - Nothing to consistency concerns
+      - A second copy of the data that can be stale until it is updated or expires
+      - Atomicity for free
+      - Durability for free
+    answer: 1
+    explanation: Any extra copy (cache, replica, search index) brings the same eventual-consistency question.
+  - id: q6
+    prompt: Which feature is the most dangerous to run on stale reads?
+    options: ["A like counter", "A bank balance used to approve a withdrawal", "A view counter", "A 'last seen' timestamp"]
+    answer: 1
+    explanation: Approving a withdrawal on a stale balance can allow a double spend. Approximate counters tolerate staleness.

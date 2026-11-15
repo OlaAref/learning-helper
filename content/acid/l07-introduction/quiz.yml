@@ -1,0 +1,20 @@
+questions:
+  - id: q1
+    prompt: Which property answers the question "what happens if a transaction fails halfway through?"
+    options: [Consistency, Atomicity, Durability, Isolation]
+    answer: 1
+    explanation: Atomicity says all queries of a transaction succeed together or none of their effects remain. Isolation is about concurrent transactions, durability about surviving crashes after commit.
+  - id: q2
+    prompt: Which property is about what concurrent transactions can see of each other's work?
+    options: [Atomicity, Durability, Isolation, Consistency]
+    answer: 2
+    explanation: Isolation controls whether an in-flight transaction sees changes made by other transactions, and which read phenomena (dirty, non-repeatable, phantom) can occur.
+  - id: q3
+    prompt: The course teaches the properties as A, I, C, D. Why does consistency come after atomicity and isolation?
+    options:
+      - Because consistency is the least important property
+      - Because a lack of atomicity or isolation is what produces inconsistent data
+      - Because consistency is implemented by the same code as durability
+      - Because consistency only matters for NoSQL databases
+    answer: 1
+    explanation: A crash between two updates (no atomicity) or a report reading moving data (no isolation) leaves data that breaks the rules of the model. Understanding those two first makes consistency easier.

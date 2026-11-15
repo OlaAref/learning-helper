@@ -1,0 +1,42 @@
+id: t2-non-repeatable-read
+title: Cause a non-repeatable read
+kind: concurrency
+difficulty: medium
+sessions: [A, B]
+statement: |
+  Make a transaction read the same row twice and get two different answers.
+
+  1. **A:** `BEGIN` (default level, READ COMMITTED) and `SELECT qty FROM sales WHERE pid = 1` (10).
+  2. **B:** `UPDATE sales SET qty = 15 WHERE pid = 1` (autocommit).
+  3. **A:** run the same SELECT again. Then `COMMIT`.
+setup: |
+  CREATE TABLE sales (pid int PRIMARY KEY, qty int, price int);
+  INSERT INTO sales VALUES (1, 10, 5), (2, 20, 4);
+checks:
+  - type: result
+    description: A's first read was 10
+    session: A
+    nth: "1"
+    expect: [[10]]
+  - type: result
+    description: A's second read was 15 (non-repeatable)
+    session: A
+    nth: "2"
+    expect: [[15]]
+  - type: query
+    description: No transaction is left open
+    sql: SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND state LIKE 'idle in transaction%'
+    expect: [[0]]
+solution:
+  explanation: At READ COMMITTED each query sees everything committed before it starts, so the second read sees B's committed update.
+  steps:
+    - session: A
+      sql: |
+        BEGIN;
+        SELECT qty FROM sales WHERE pid = 1;
+    - session: B
+      sql: UPDATE sales SET qty = 15 WHERE pid = 1;
+    - session: A
+      sql: SELECT qty FROM sales WHERE pid = 1;
+    - session: A
+      sql: COMMIT;
